@@ -32,16 +32,11 @@ end
 n_states(p::DiscreteVDPTagProblem) = Inf
 n_actions(p::DiscreteVDPTagProblem) = 2*length(p.angles)
 POMDPs.discount(p::DiscreteVDPTagProblem) = discount(cproblem(p))
-POMDPs.actions(p::DiscreteVDPTagProblem) = [TagAction(look, angle) for angle in p.angles for look in [true, false]]
+POMDPs.actions(p::DiscreteVDPTagProblem) = [TagAction(look, angle) for look in [false, true] for angle in p.angles]
+POMDPs.actionindex(p::DiscreteVDPTagProblem, a::TagAction) = a.look * length(p.angles) + findfirst(x->x==a.angle, p.angles)
 
-function POMDPs.gen(p::ADiscreteVDPTagPOMDP, s::TagState, a::TagAction, rng::AbstractRNG)
-    return gen(cproblem(p), s, a, rng)
-end
-
-function POMDPs.gen(p::AODiscreteVDPTagPOMDP, s::TagState, a::TagAction, rng::AbstractRNG)
-    csor = @gen(:sp,:o,:r)(cproblem(p), s, a, rng)
-    return (sp=csor[1], o=convert_o(IVec8, csor[2], p), r=csor[3])
-end
+POMDPs.transition(p::DiscreteVDPTagProblem, s::TagState, a::TagAction) = transition(cproblem(p), s, a)
+POMDPs.reward(p::DiscreteVDPTagProblem, s::TagState, a::TagAction, sp::TagState) = reward(cproblem(p), s, a, sp)
 
 function POMDPs.observation(p::ADiscreteVDPTagPOMDP, s::TagState, a::TagAction, sp::TagState)
     return POMDPs.observation(cproblem(p), s, a, sp)
