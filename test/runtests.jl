@@ -17,6 +17,11 @@ pomdp = VDPTagPOMDP()
 gen = NextMLFirst(mdp(pomdp), MersenneTwister(31))
 global s = TagState([1.0, 1.0], [-1.0, -1.0])
 
+
+cpomdp = VDPTagPOMDP(mdp=VDPTagMDP(barriers=CardinalBarriers(0.2, 1.8)))
+adpomdp = ADiscreteVDPTagPOMDP(cpomdp=cpomdp)
+
+
 struct MyNode end
 MCTS.n_children(::MyNode) = rand(1:10)
 
@@ -42,7 +47,7 @@ dpomdp = AODiscreteVDPTagPOMDP(pomdp, 30, 0.5)
 for sao in stepthrough(dpomdp, RandomPolicy(dpomdp), "s,a,o", max_steps=10)
     @show sao
     # to address #7
-    rand(Random.GLOBAL_RNG, POMDPs.observation(dpomdp, sao[1], 1, sao[1]))
+    rand(Random.GLOBAL_RNG, POMDPs.observation(dpomdp, sao[1], sao[2], sao[1]))
 end
 
 pomdp = VDPTagPOMDP(mdp=VDPTagMDP(barriers=CardinalBarriers(0.2, 1.8)))

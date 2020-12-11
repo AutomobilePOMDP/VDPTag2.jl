@@ -3,7 +3,7 @@ struct ToNextML{RNG<:AbstractRNG} <: Policy
     rng::RNG
 end
 
-ToNextML(p::VDPTagProblem; rng=Random.GLOBAL_RNG) = ToNextML(mdp(p), rng)
+ToNextML(p::Union{VDPTagProblem, DiscreteVDPTagProblem}; rng=Random.GLOBAL_RNG) = ToNextML(mdp(p), rng)
 
 function POMDPs.action(p::ToNextML, s::TagState)
     next = next_ml_target(p.p, s.target)
@@ -17,15 +17,10 @@ struct ToNextMLSolver <: Solver
     rng::AbstractRNG
 end
 
-POMDPs.solve(s::ToNextMLSolver, p::VDPTagProblem) = ToNextML(mdp(p), s.rng)
-function POMDPs.solve(s::ToNextMLSolver, dp::DiscreteVDPTagProblem)
-    cp = cproblem(dp)
-    return translate_policy(ToNextML(mdp(cp), s.rng), cp, dp, dp)
-end
-
+POMDPs.solve(s::ToNextMLSolver, p::Union{VDPTagProblem, DiscreteVDPTagProblem}) = ToNextML(mdp(p), s.rng)
 
 struct ManageUncertainty <: Policy
-    p::VDPTagPOMDP
+    p::Union{VDPTagPOMDP, DiscreteVDPTagProblem}
     max_norm_std::Float64
 end
 
@@ -55,31 +50,5 @@ end
 
 function next_action(gen::NextMLFirst, pomdp::Union{POMDP, MDP}, b, onode)
     s = rand(gen.rng, b)
-    ca = TagAction(false, next_action(gen, pomdp, s, onode))
-    return convert_a(actiontype(pomdp), ca, pomdp)
-end
-
-struct TranslatedPolicy{P<:Policy, T, ST, AT} <: Policy
-    policy::P
-    translator::T
-    S::Type{ST}
-    A::Type{AT}
-end
-
-function translate_policy(p::Policy, from::Union{POMDP,MDP}, to::Union{POMDP,MDP}, translator)
-    return TranslatedPolicy(p, translator, statetype(from), actiontype(to))
-end
-
-function POMDPs.action(p::TranslatedPolicy, s)
-    cs = convert_s(p.S, s, p.translator)
-    ca = POMDPs.action(p.policy, cs)
-    return convert_a(p.A, ca, p.translator)
-end
-
-# this is not the most efficient way to do this
-function POMDPs.action(p::TranslatedPolicy, pc::AbstractParticleBelief)
-    @assert !isa(pc, WeightedParticleBelief)
-    cpc = ParticleCollection([convert_s(p.S, s, p.translator) for s in particles(pc)])
-    ca = POMDPs.action(p.policy, cpc)
-    return convert_a(p.A, ca, p.translator)
+    return TagAction(false, next_action(gen, pomdp, s, onode))
 end
