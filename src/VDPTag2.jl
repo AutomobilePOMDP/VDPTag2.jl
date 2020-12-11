@@ -30,23 +30,17 @@ export
     VDPTagPOMDP,
     Vec2,
 
-    DiscreteVDPTagMDP,
-    DiscreteVDPTagPOMDP,
     AODiscreteVDPTagPOMDP,
     ADiscreteVDPTagPOMDP,
-    TranslatedPolicy,
-    translate_policy,
     cproblem,
 
     convert_s,
     convert_a,
     convert_o,
-    obs_weight,
 
     ToNextML,
     ToNextMLSolver,
     NextMLFirst,
-    DiscretizedPolicy,
     ManageUncertainty,
     CardinalBarriers,
     mdp
