@@ -11,7 +11,7 @@ function POMDPs.action(p::ToNextML, s::TagState)
     return atan(diff[2], diff[1])
 end
 
-POMDPs.action(p::ToNextML, b::ParticleCollection{TagState}) = TagAction(false, POMDPs.action(p, rand(p.rng, b)))
+POMDPs.action(p::ToNextML, b::AbstractParticleBelief) = TagAction(false, action(p, rand(p.rng, b)))
 
 struct ToNextMLSolver <: Solver
     rng::AbstractRNG
@@ -24,16 +24,18 @@ struct ManageUncertainty <: Policy
     max_norm_std::Float64
 end
 
-function POMDPs.action(p::ManageUncertainty, b::ParticleCollection{TagState})
+function POMDPs.action(p::ManageUncertainty, b::AbstractParticleBelief)
     agent = first(particles(b)).agent
     target_particles = Array{Float64}(undef, 2, n_particles(b))
     for (i, s) in enumerate(particles(b))
         target_particles[:,i] = s.target
     end
-    normal_dist = fit(MvNormal, target_particles)
+    normal_dist = fit(MvNormal, target_particles, weights(b))
     angle = POMDPs.action(ToNextML(mdp(p.p)), TagState(agent, mean(normal_dist)))
     return TagAction(sqrt(det(cov(normal_dist))) > p.max_norm_std, angle)
 end
+
+POMDPs.action(p::ManageUncertainty, s::TagState) = action(ToNextML(mdp(p.p)), s)
 
 mutable struct NextMLFirst{RNG<:AbstractRNG}
     p::VDPTagMDP
