@@ -36,6 +36,9 @@ end
 function POMDPs.action(p::ManageUncertainty, b::AbstractParticleBelief)
     agent = first(particles(b)).agent
     prob_dict = ParticleFilters.probdict(b)
+    if length(prob_dict) == 1
+        return action(p, first(keys(prob_dict)))
+    end
     target_particles = Array{Float64}(undef, 2, length(prob_dict))
     for (i, s) in enumerate(keys(prob_dict))
         target_particles[:,i] = s.target
