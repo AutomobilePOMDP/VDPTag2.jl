@@ -21,6 +21,10 @@ global s = TagState([1.0, 1.0], [-1.0, -1.0])
 cpomdp = VDPTagPOMDP(mdp=VDPTagMDP(barriers=CardinalBarriers(0.2, 1.8)))
 adpomdp = ADiscreteVDPTagPOMDP(cpomdp=cpomdp)
 
+@testset "Heuristics action type test." begin
+    @test typeof(action(ToNextML(mdp(adpomdp)), s)) == Float64
+    @test typeof(action(ToNextML(adpomdp), s)) == TagAction
+end
 
 struct MyNode end
 MCTS.n_children(::MyNode) = rand(1:10)

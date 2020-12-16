@@ -1,3 +1,4 @@
+# The action type of ToNextML policy depends on the model given
 struct ToNextML{P<:Union{VDPTagProblem, DiscreteVDPTagProblem}, RNG<:AbstractRNG} <: Policy
     p::P
     rng::RNG
@@ -5,19 +6,20 @@ end
 
 ToNextML(p::Union{VDPTagProblem, DiscreteVDPTagProblem}; rng=Random.GLOBAL_RNG) = ToNextML(p, rng)
 
-function POMDPs.action(p::ToNextML{VDPTagMDP}, s::TagState)
+function POMDPs.action(p::ToNextML{P}, s::TagState) where P <: VDPTagMDP
     next = next_ml_target(p.p, s.target)
     diff = next-s.agent
     return atan(diff[2], diff[1])
 end
 
-function POMDPs.action(p::ToNextML, s::TagState)
-    next = next_ml_target(p.p, s.target)
+function POMDPs.action(p::ToNextML{P}, s::TagState) where P <: Union{VDPTagPOMDP, DiscreteVDPTagProblem}
+    next = next_ml_target(mdp(p.p), s.target)
     diff = next-s.agent
     return TagAction(false, atan(diff[2], diff[1]))
 end
 
-POMDPs.action(p::ToNextML, b::AbstractParticleBelief) = TagAction(false, action(p, rand(p.rng, b)))
+POMDPs.action(p::ToNextML{P}, b::AbstractParticleBelief) where P <: Union{VDPTagPOMDP, DiscreteVDPTagProblem} = action(p, mode(b))
+POMDPs.action(p::ToNextML{P}, b::Any) where P <: Union{VDPTagPOMDP, DiscreteVDPTagProblem} = action(p, rand(b))
 
 struct ToNextMLSolver <: Solver
     rng::AbstractRNG
@@ -25,6 +27,7 @@ end
 
 POMDPs.solve(s::ToNextMLSolver, p::Union{VDPTagProblem, DiscreteVDPTagProblem}) = ToNextML(p, s.rng)
 
+# A POMDP policy which always takes a TagAction
 struct ManageUncertainty <: Policy
     p::Union{VDPTagPOMDP, DiscreteVDPTagProblem}
     max_norm_std::Float64
@@ -53,7 +56,7 @@ end
 
 function next_action(gen::NextMLFirst, mdp::Union{POMDP, MDP}, s::TagState, snode)
     if n_children(snode) < 1
-        return POMDPs.action(ToNextML(gen.p, gen.rng), s)
+        return POMDPs.action(ToNextML(gen.p, gen.rng), s)::Float64
     else
         return 2*pi*rand(gen.rng)
     end
