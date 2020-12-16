@@ -1,14 +1,20 @@
-struct ToNextML{RNG<:AbstractRNG} <: Policy
-    p::VDPTagMDP
+struct ToNextML{P<:Union{VDPTagProblem, DiscreteVDPTagProblem}, RNG<:AbstractRNG} <: Policy
+    p::P
     rng::RNG
 end
 
-ToNextML(p::Union{VDPTagProblem, DiscreteVDPTagProblem}; rng=Random.GLOBAL_RNG) = ToNextML(mdp(p), rng)
+ToNextML(p::Union{VDPTagProblem, DiscreteVDPTagProblem}; rng=Random.GLOBAL_RNG) = ToNextML(p, rng)
+
+function POMDPs.action(p::ToNextML{VDPTagMDP}, s::TagState)
+    next = next_ml_target(p.p, s.target)
+    diff = next-s.agent
+    return atan(diff[2], diff[1])
+end
 
 function POMDPs.action(p::ToNextML, s::TagState)
     next = next_ml_target(p.p, s.target)
     diff = next-s.agent
-    return atan(diff[2], diff[1])
+    return TagAction(false, atan(diff[2], diff[1]))
 end
 
 POMDPs.action(p::ToNextML, b::AbstractParticleBelief) = TagAction(false, action(p, rand(p.rng, b)))
@@ -17,7 +23,7 @@ struct ToNextMLSolver <: Solver
     rng::AbstractRNG
 end
 
-POMDPs.solve(s::ToNextMLSolver, p::Union{VDPTagProblem, DiscreteVDPTagProblem}) = ToNextML(mdp(p), s.rng)
+POMDPs.solve(s::ToNextMLSolver, p::Union{VDPTagProblem, DiscreteVDPTagProblem}) = ToNextML(p, s.rng)
 
 struct ManageUncertainty <: Policy
     p::Union{VDPTagPOMDP, DiscreteVDPTagProblem}
@@ -26,16 +32,19 @@ end
 
 function POMDPs.action(p::ManageUncertainty, b::AbstractParticleBelief)
     agent = first(particles(b)).agent
-    target_particles = Array{Float64}(undef, 2, n_particles(b))
-    for (i, s) in enumerate(particles(b))
+    prob_dict = ParticleFilters.probdict(b)
+    target_particles = Array{Float64}(undef, 2, length(prob_dict))
+    for (i, s) in enumerate(keys(prob_dict))
         target_particles[:,i] = s.target
     end
-    normal_dist = fit(MvNormal, target_particles, weights(b))
+    normal_dist = fit(MvNormal, target_particles, collect(values(prob_dict))) # particles should be unique
     angle = POMDPs.action(ToNextML(mdp(p.p)), TagState(agent, mean(normal_dist)))
     return TagAction(sqrt(det(cov(normal_dist))) > p.max_norm_std, angle)
 end
 
-POMDPs.action(p::ManageUncertainty, s::TagState) = action(ToNextML(mdp(p.p)), s)
+POMDPs.action(p::ManageUncertainty, b::Any) = TagAction(false, action(ToNextML(mdp(p.p)), rand(b)))
+POMDPs.action(p::ManageUncertainty, s::TagState) = TagAction(false, action(ToNextML(mdp(p.p)), s))
+
 
 mutable struct NextMLFirst{RNG<:AbstractRNG}
     p::VDPTagMDP
