@@ -32,6 +32,7 @@ end
 n_states(p::DiscreteVDPTagProblem) = Inf
 n_actions(p::DiscreteVDPTagProblem) = 2*length(p.angles)
 POMDPs.discount(p::DiscreteVDPTagProblem) = discount(cproblem(p))
+POMDPs.isterminal(p::DiscreteVDPTagProblem, s::TagState) = mdp(p).tag_terminate && norm(s.agent-s.target) < mdp(p).tag_radius
 POMDPs.actions(p::DiscreteVDPTagProblem) = [TagAction(look, angle) for look in [false, true] for angle in p.angles]
 POMDPs.actionindex(p::DiscreteVDPTagProblem, a::TagAction) = a.look * length(p.angles) + findfirst(x->x==a.angle, p.angles)
 
