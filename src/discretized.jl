@@ -39,13 +39,13 @@ POMDPs.actionindex(p::DiscreteVDPTagProblem, a::TagAction) = a.look * length(p.a
 POMDPs.transition(p::DiscreteVDPTagProblem, s::TagState, a::TagAction) = transition(cproblem(p), s, a)
 POMDPs.reward(p::DiscreteVDPTagProblem, s::TagState, a::TagAction, sp::TagState) = reward(cproblem(p), s, a, sp)
 
-function POMDPs.observation(p::ADiscreteVDPTagPOMDP, s::TagState, a::TagAction, sp::TagState)
-    return POMDPs.observation(cproblem(p), s, a, sp)
+function POMDPs.observation(p::ADiscreteVDPTagPOMDP, a::TagAction, sp::TagState)
+    return POMDPs.observation(cproblem(p), a, sp)
 end
 
-function POMDPs.observation(p::AODiscreteVDPTagPOMDP, s::TagState, a::TagAction, sp::TagState)
-    ImplicitDistribution(p, s, a, sp) do p, s, a, sp, rng
-        co = rand(rng, observation(cproblem(p), s, a, sp))
+function POMDPs.observation(p::AODiscreteVDPTagPOMDP, a::TagAction, sp::TagState)
+    ImplicitDistribution(p, a, sp) do p, a, sp, rng
+        co = rand(rng, observation(cproblem(p), a, sp))
         return convert_o(IVec8, co, p)
     end
 end
