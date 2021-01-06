@@ -10,16 +10,42 @@ using POMDPModelTools
 using POMDPPolicies
 using POMDPModels
 using POMDPSimulators
+using POMCPOW
 
 
 Random.seed!(1)
 pomdp = VDPTagPOMDP()
-gen = NextMLFirst(mdp(pomdp), MersenneTwister(31))
+gen = NextMLFirst(MersenneTwister(31))
 global s = TagState([1.0, 1.0], [-1.0, -1.0])
 
 
 cpomdp = VDPTagPOMDP(mdp=VDPTagMDP(barriers=CardinalBarriers(0.2, 1.8)))
 adpomdp = ADiscreteVDPTagPOMDP(cpomdp=cpomdp)
+
+@testset "POMCPOW Test" begin
+    hr = HistoryRecorder(max_steps=100)
+    solver = POMCPOWSolver(
+        estimate_value=FORollout(RandomSolver()),
+        tree_queries=100000, 
+        max_time=1.0,
+        criterion=MaxUCB(110.0),
+        final_criterion=MaxQ(),
+        max_depth=90,
+        k_action=30.0,
+        alpha_action=1/30,
+        k_observation=3.0,
+        alpha_observation=1/200,
+        next_action=NextMLFirst(Random.GLOBAL_RNG),
+        check_repeat_obs=false,
+        check_repeat_act=false,
+    )
+    beliefupdater =BootstrapFilter(pomdp, 10000)
+    planner = solve(solver, cpomdp)
+    hist = simulate(hr, cpomdp, planner, beliefupdater)
+    r = discounted_reward(hist)
+    @show r
+    @test r != NaN
+end
 
 @testset "Heuristics action type test." begin
     @test typeof(action(ToNextML(mdp(adpomdp)), s)) == Float64
@@ -29,7 +55,7 @@ end
 struct MyNode end
 MCTS.n_children(::MyNode) = rand(1:10)
 
-@inferred next_action(gen, pomdp, s, MyNode())
+@inferred next_action(gen, mdp(pomdp), s, MyNode())
 @inferred next_action(gen, pomdp, initialstate(pomdp), MyNode())
 
 for a in range(0.0, stop=2*pi, length=100)
@@ -55,14 +81,14 @@ for sao in stepthrough(dpomdp, RandomPolicy(dpomdp), "s,a,o", max_steps=10)
 end
 
 pomdp = VDPTagPOMDP(mdp=VDPTagMDP(barriers=CardinalBarriers(0.2, 1.8)))
-filter = SIRParticleFilter(pomdp, 1000)
+filter = BootstrapFilter(pomdp, 1000)
 for sao in stepthrough(pomdp, ToNextML(pomdp), filter, "s,a,o", max_steps=10)
     @show sao
 end
 
 # test to make sure it can't pass through any walls
 pomdp = VDPTagPOMDP(mdp=VDPTagMDP(barriers=CardinalBarriers(0.0, 100.0)))
-filter = SIRParticleFilter(pomdp, 1000)
+filter = BootstrapFilter(pomdp, 1000)
 for quadrant in [Vec2(1,1), Vec2(-1,1), Vec2(1,-1), Vec2(-1,-1)]
     @showprogress for i in 1:100
         is = rand(Random.GLOBAL_RNG, initialstate(pomdp))

@@ -25,6 +25,7 @@ POMDPs = "0.9"
 [extras]
 ProgressMeter = "92933f4c-e287-5a05-a399-4b506db050ca"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+POMCPOW = "4c53ee00-974c-466f-8fa5-8dd73959bbab"
 
 [targets]
-test = ["Test", "ProgressMeter"]
+test = ["Test", "ProgressMeter", "POMCPOW"]

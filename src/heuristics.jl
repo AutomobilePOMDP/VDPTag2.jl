@@ -53,19 +53,15 @@ POMDPs.action(p::ManageUncertainty, s::TagState) = TagAction(false, action(ToNex
 
 
 mutable struct NextMLFirst{RNG<:AbstractRNG}
-    p::VDPTagMDP
     rng::RNG
 end
 
-function next_action(gen::NextMLFirst, mdp::Union{POMDP, MDP}, s::TagState, snode)
+function next_action(gen::NextMLFirst, mdp::VDPTagMDP, s::TagState, snode)
     if n_children(snode) < 1
-        return POMDPs.action(ToNextML(gen.p, gen.rng), s)::Float64
+        return POMDPs.action(ToNextML(mdp, gen.rng), s)::Float64
     else
         return 2*pi*rand(gen.rng)
     end
 end
 
-function next_action(gen::NextMLFirst, pomdp::Union{POMDP, MDP}, b, onode)
-    s = rand(gen.rng, b)
-    return TagAction(false, next_action(gen, pomdp, s, onode))
-end
+next_action(gen::NextMLFirst, pomdp::Union{VDPTagPOMDP, DiscreteVDPTagProblem}, b, onode) = TagAction(false, next_action(gen, mdp(pomdp), rand(gen.rng, b), onode))
