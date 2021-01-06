@@ -21,7 +21,7 @@ global s = TagState([1.0, 1.0], [-1.0, -1.0])
 
 cpomdp = VDPTagPOMDP(mdp=VDPTagMDP(barriers=CardinalBarriers(0.2, 1.8)))
 adpomdp = ADiscreteVDPTagPOMDP(cpomdp=cpomdp)
-dpomdp = AODiscreteVDPTagPOMDP(pomdp, 30, 0.5)
+dpomdp = AODiscreteVDPTagPOMDP(pomdp, 10, 5.0)
 
 @testset "POMCPOW Test" begin
     hr = HistoryRecorder(max_steps=100)

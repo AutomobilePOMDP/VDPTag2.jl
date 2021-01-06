@@ -52,8 +52,8 @@ rand(rng::AbstractRNG, d::DiscreteBeamDist) = convert_o(IVec8, rand(rng, d.beam_
 
 function POMDPs.pdf(d::DiscreteBeamDist, o::IVec8)
     p = 1.0
-    upper = o .+ 0.5*2*pi/length(d.pomdp.angles)
-    lower = o .- 0.5*2*pi/length(d.pomdp.angles)
+    lower = o .* d.pomdp.binsize
+    upper = (o .+ 1) .* d.pomdp.binsize
     d = d.beam_dist
     for i in 1:length(o)
         if i == d.abeam
@@ -61,6 +61,7 @@ function POMDPs.pdf(d::DiscreteBeamDist, o::IVec8)
         else
             p *= cdf(d.n, upper[i]) - cdf(d.n, lower[i])
         end
+        @show p
     end
     return p
 end
