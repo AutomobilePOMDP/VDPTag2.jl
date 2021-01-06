@@ -37,59 +37,30 @@ POMDPs.actions(p::DiscreteVDPTagProblem) = [TagAction(look, angle) for look in [
 POMDPs.actionindex(p::DiscreteVDPTagProblem, a::TagAction) = a.look * length(p.angles) + findfirst(x->x==a.angle, p.angles)
 
 POMDPs.transition(p::DiscreteVDPTagProblem, s::TagState, a::TagAction) = transition(cproblem(p), s, a)
+POMDPs.initialstate(p::DiscreteVDPTagProblem) = VDPInitDist()
 POMDPs.reward(p::DiscreteVDPTagProblem, s::TagState, a::TagAction, sp::TagState) = reward(cproblem(p), s, a, sp)
 
-function POMDPs.observation(p::ADiscreteVDPTagPOMDP, a::TagAction, sp::TagState)
-    return POMDPs.observation(cproblem(p), a, sp)
+POMDPs.observation(p::ADiscreteVDPTagPOMDP, a::TagAction, sp::TagState) = observation(cproblem(p), a, sp)
+
+struct DiscreteBeamDist
+    beam_dist::BeamDist
+    pomdp::POMDP
 end
 
-function POMDPs.observation(p::AODiscreteVDPTagPOMDP, a::TagAction, sp::TagState)
-    ImplicitDistribution(p, a, sp) do p, a, sp, rng
-        co = rand(rng, observation(cproblem(p), a, sp))
-        return convert_o(IVec8, co, p)
-    end
-end
+POMDPs.observation(p::AODiscreteVDPTagPOMDP, a::TagAction, sp::TagState) = DiscreteBeamDist(observation(cproblem(p), a, sp), p)
+rand(rng::AbstractRNG, d::DiscreteBeamDist) = convert_o(IVec8, rand(rng, d.beam_dist), d.pomdp)
 
-POMDPs.initialstate(p::DiscreteVDPTagProblem) = VDPInitDist()
-
-#=
-gauss_cdf(mean, std, x) = 0.5*(1.0+erf((x-mean)/(std*sqrt(2))))
-function obs_weight(p::AODiscreteVDPTagPOMDP, a::Int, sp::TagState, o::Int)
-    cp = cproblem(p)
-    @assert cp.bearing_std <= 2*pi/6.0 "obs_weight assumes σ <= $(2*pi/6.0)"
-    ca = convert_a(actiontype(cp), a, p)
-    co = convert_o(obstype(cp), o, p) # float between 0 and 2pi
-    upper = co + 0.5*2*pi/p.n_angles
-    lower = co - 0.5*2*pi/p.n_angles
-    if ca.look
-        diff = sp.target - sp.agent
-        bearing = atan(diff[2], diff[1])
-        # three cases: o is in bin, below, or above
-        if bearing <= upper && bearing > lower
-            cdf_up = gauss_cdf(bearing, cp.bearing_std, upper)
-            cdf_low = gauss_cdf(bearing, cp.bearing_std, lower)
-            prob = cdf_up - cdf_low
-        elseif bearing <= lower
-            cdf_up = gauss_cdf(bearing, cp.bearing_std, upper)
-            cdf_low = gauss_cdf(bearing, cp.bearing_std, lower)
-            below_cdf_up = gauss_cdf(bearing, cp.bearing_std, upper-2*pi)
-            below_cdf_low = gauss_cdf(bearing, cp.bearing_std, lower-2*pi)
-            prob = cdf_up - cdf_low + below_cdf_up - below_cdf_low
-        else # bearing > upper
-            cdf_up = gauss_cdf(bearing, cp.bearing_std, upper)
-            cdf_low = gauss_cdf(bearing, cp.bearing_std, lower)
-            above_cdf_up = gauss_cdf(bearing, cp.bearing_std, upper+2*pi)
-            above_cdf_low = gauss_cdf(bearing, cp.bearing_std, lower+2*pi)
-            prob = cdf_up - cdf_low + above_cdf_up - above_cdf_low
+function POMDPs.pdf(d::DiscreteBeamDist, o::IVec8)
+    p = 1.0
+    upper = o .+ 0.5*2*pi/length(d.pomdp.angles)
+    lower = o .- 0.5*2*pi/length(d.pomdp.angles)
+    d = d.beam_dist
+    for i in 1:length(o)
+        if i == d.abeam
+            p *= cdf(d.an, upper[i]) - cdf(d.an, lower[i])
+        else
+            p *= cdf(d.n, upper[i]) - cdf(d.n, lower[i])
         end
-        return prob
-    else
-        return 1.0
     end
+    return p
 end
-
-function obs_weight(p::ADiscreteVDPTagPOMDP, a::Int, sp::TagState, o::Float64)
-    ca = convert_a(TagAction, a, p)
-    return obs_weight(cproblem(p), ca, sp, o)
-end
-=#

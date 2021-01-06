@@ -21,6 +21,7 @@ global s = TagState([1.0, 1.0], [-1.0, -1.0])
 
 cpomdp = VDPTagPOMDP(mdp=VDPTagMDP(barriers=CardinalBarriers(0.2, 1.8)))
 adpomdp = ADiscreteVDPTagPOMDP(cpomdp=cpomdp)
+dpomdp = AODiscreteVDPTagPOMDP(pomdp, 30, 0.5)
 
 @testset "POMCPOW Test" begin
     hr = HistoryRecorder(max_steps=100)
@@ -36,14 +37,21 @@ adpomdp = ADiscreteVDPTagPOMDP(cpomdp=cpomdp)
         k_observation=3.0,
         alpha_observation=1/200,
         next_action=NextMLFirst(Random.GLOBAL_RNG),
+        rng=Random.GLOBAL_RNG,
         check_repeat_obs=false,
         check_repeat_act=false,
     )
-    beliefupdater =BootstrapFilter(pomdp, 10000)
+    # Discrete
+    planner = solve(solver, dpomdp)
+    beliefupdater =BootstrapFilter(dpomdp, 10000)
+    hist = simulate(hr, dpomdp, planner, beliefupdater)
+    @show r = discounted_reward(hist)
+    @test r != NaN
+    # Continuous
     planner = solve(solver, cpomdp)
+    beliefupdater =BootstrapFilter(cpomdp, 10000)
     hist = simulate(hr, cpomdp, planner, beliefupdater)
-    r = discounted_reward(hist)
-    @show r
+    @show r = discounted_reward(hist)
     @test r != NaN
 end
 
