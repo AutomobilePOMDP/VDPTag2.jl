@@ -61,7 +61,6 @@ function POMDPs.pdf(d::DiscreteBeamDist, o::IVec8)
         else
             p *= cdf(d.n, upper[i]) - cdf(d.n, lower[i])
         end
-        @show p
     end
     return p
 end
