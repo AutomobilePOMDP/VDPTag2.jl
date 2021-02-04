@@ -16,8 +16,8 @@ ADiscreteVDPTagPOMDP(p::VDPTagPOMDP, n_angles::Int) = ADiscreteVDPTagPOMDP(p, ra
 
 const DiscreteVDPTagProblem = Union{AODiscreteVDPTagPOMDP, ADiscreteVDPTagPOMDP}
 
-cproblem(p::DiscreteVDPTagProblem) = p.cpomdp
-mdp(p::DiscreteVDPTagProblem) = mdp(cproblem(p))
+cproblem(p::DiscreteVDPTagProblem) = p.cpomdp::VDPTagPOMDP
+mdp(p::DiscreteVDPTagProblem) = mdp(cproblem(p))::VDPTagMDP
 
 convert_s(::Type{T}, x::T, p) where T = x
 convert_a(::Type{T}, x::T, p) where T = x

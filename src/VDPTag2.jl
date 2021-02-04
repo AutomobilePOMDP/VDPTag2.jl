@@ -78,8 +78,8 @@ end
 end
 
 const VDPTagProblem = Union{VDPTagMDP,VDPTagPOMDP}
-mdp(p::VDPTagMDP) = p
-mdp(p::VDPTagPOMDP) = p.mdp
+mdp(p::VDPTagMDP) = p::VDPTagMDP
+mdp(p::VDPTagPOMDP) = p.mdp::VDPTagMDP
 
 function next_ml_target(p::VDPTagMDP, pos::Vec2)
     steps = round(Int, p.step_size/p.dt)
@@ -99,8 +99,8 @@ function POMDPs.transition(pp::VDPTagProblem, s::TagState, a::Float64)
     end
 end
 
-function POMDPs.reward(pp::VDPTagProblem, s::TagState, a::Float64, sp::TagState)
-    p = mdp(pp)
+POMDPs.reward(pp::VDPTagPOMDP, s::TagState, a::Float64, sp::TagState) = reward(pp.mdp, s, a, sp)
+function POMDPs.reward(p::VDPTagMDP, s::TagState, a::Float64, sp::TagState)
     if norm(sp.agent-sp.target) < p.tag_radius
         return p.tag_reward
     else

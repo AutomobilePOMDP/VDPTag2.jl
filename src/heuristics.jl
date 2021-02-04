@@ -13,7 +13,7 @@ function POMDPs.action(p::ToNextML{P}, s::TagState) where P <: VDPTagMDP
 end
 
 function POMDPs.action(p::ToNextML{P}, s::TagState) where P <: Union{VDPTagPOMDP, DiscreteVDPTagProblem}
-    next = next_ml_target(mdp(p.p), s.target)
+    next = next_ml_target(mdp(p.p)::VDPTagMDP, s.target)
     diff = next-s.agent
     return TagAction(false, atan(diff[2], diff[1]))
 end
